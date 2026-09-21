@@ -657,13 +657,13 @@ The default backend can be changed for an entire project.
 Define:
 
 ```
-#define enumlite_DEFAULT_BACKEND my_backend
+#define ENUMLITE_DEFAULT_BACKEND my_backend
 ```
 
 before including `enumlite.h`:
 
 ```
-#define enumlite_DEFAULT_BACKEND my_backend
+#define ENUMLITE_DEFAULT_BACKEND my_backend
 
 #include <enumlite/enumlite.h>
 ```
@@ -1034,15 +1034,15 @@ DEFINE_FLAGS_EX(
 ```
 enumlite.h
      |
-     +-+
+     +-------------------+
      |                   |
   Enum logic         Flags logic
      |                   |
-     +++
+     +---------+---------+
                |
             Backend
                |
-     +++
+     +---------+---------+
      |         |         |
     std        Qt      Custom
 ```
