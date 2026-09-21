@@ -1,4 +1,4 @@
-# Integration
+# Installation
 
 `enum_lite` is a header-only library. There is no library to build or link.
 
