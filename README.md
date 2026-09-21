@@ -704,6 +704,41 @@ DEFINE_ENUM_EX(
 
 Qt support is optional and isolated from the core library.
 
+Add option command:
+
+on cmake fetch:
+```cmake
+include(FetchContent)
+
+set(ENUMLITE_BUILD_QT ON CACHE BOOL "Build enumlite Qt backend") // HERE
+
+FetchContent_Declare(
+    enumlite
+    GIT_REPOSITORY https://github.com/florianfoz/enumlite.git
+    GIT_TAG main
+)
+
+FetchContent_MakeAvailable(enumlite)
+```
+or on cmake git submodule: 
+> think to set the submodule `git submodule add https://github.com/florianfoz/enumlite.git external/enumlite`
+```cmake
+set(ENUMLITE_BUILD_QT ON CACHE BOOL "Build enumlite Qt backend") // HERE
+
+add_subdirectory(
+    external/enumlite
+)
+
+target_link_libraries(your_target
+    PRIVATE
+        enumlite::enumlite
+)
+```
+or on build command argument (if alreadt fetched or submodule added):
+```bash
+-DENUMLITE_BUILD_QT=ON
+```
+
 Include:
 
 ```
