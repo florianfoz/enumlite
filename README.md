@@ -1043,6 +1043,13 @@ This makes the library suitable for:
 * Qt applications
 * Cross-platform C++ projects
 
+# AI-assisted development
+
+Parts of `enumlite` have been developed with the assistance of AI tools.
+
+AI-generated or AI-assisted code is reviewed and validated before publication. This includes manual code review and automated validation through the project's test suite.
+
+AI assistance does not replace the project's verification process: changes are expected to compile successfully and pass the relevant tests before being published.
 
 
 # License
