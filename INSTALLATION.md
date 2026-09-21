@@ -9,7 +9,7 @@ include(FetchContent)
 
 FetchContent_Declare(
     enumlite
-    GIT_REPOSITORY https://github.com/YOUR_USERNAME/enumlite.git
+    GIT_REPOSITORY https://github.com/florianfoz/enumlite.git
     GIT_TAG v1.0.0
 )
 
@@ -32,7 +32,7 @@ Then:
 Add the repository to your project:
 
 ```bash
-git submodule add https://github.com/YOUR_USERNAME/enumlite.git external/enumlite
+git submodule add https://github.com/florianfoz/enumlite.git external/enumlite
 ```
 
 Then in `CMakeLists.txt`:
