@@ -710,7 +710,7 @@ on cmake fetch:
 ```cmake
 include(FetchContent)
 
-set(ENUMLITE_BUILD_QT ON CACHE BOOL "Build enumlite Qt backend") // HERE
+set(ENUMLITE_BUILD_QT ON CACHE BOOL "Build enumlite Qt backend") # HERE
 
 FetchContent_Declare(
     enumlite
@@ -723,7 +723,7 @@ FetchContent_MakeAvailable(enumlite)
 or on cmake git submodule: 
 > think to set the submodule `git submodule add https://github.com/florianfoz/enumlite.git external/enumlite`
 ```cmake
-set(ENUMLITE_BUILD_QT ON CACHE BOOL "Build enumlite Qt backend") // HERE
+set(ENUMLITE_BUILD_QT ON CACHE BOOL "Build enumlite Qt backend") # HERE
 
 add_subdirectory(
     external/enumlite
