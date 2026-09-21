@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef ENUMLITE_BUILD_QT
-
 #include <QChar>
 #include <QString>
 #include <QStringView>
@@ -84,5 +82,3 @@ struct qt_backend {
 };
 
 } // namespace enumlite
-
-#endif
