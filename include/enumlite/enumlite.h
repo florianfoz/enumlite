@@ -504,3 +504,4 @@ private:
                                                                                                                        \
     return (raw | all) == all;                                                                                         \
   }
+
