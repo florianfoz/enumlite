@@ -6,7 +6,7 @@
 #include <QString>
 #include <QStringView>
 
-namespace enum_lite
+namespace enumlite
 {
 
 struct qt_backend {
@@ -83,6 +83,6 @@ struct qt_backend {
   }
 };
 
-} // namespace enum_lite
+} // namespace enumlite
 
 #endif

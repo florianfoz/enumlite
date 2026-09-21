@@ -1,6 +1,6 @@
 # Installation
 
-`enum_lite` is a header-only library. There is no library to build or link.
+`enumlite` is a header-only library. There is no library to build or link.
 
 ## CMake — Fetch from GitHub
 
@@ -8,23 +8,23 @@
 include(FetchContent)
 
 FetchContent_Declare(
-    enum_lite
-    GIT_REPOSITORY https://github.com/YOUR_USERNAME/enum_lite.git
+    enumlite
+    GIT_REPOSITORY https://github.com/YOUR_USERNAME/enumlite.git
     GIT_TAG v1.0.0
 )
 
-FetchContent_MakeAvailable(enum_lite)
+FetchContent_MakeAvailable(enumlite)
 
 target_link_libraries(your_target
     PRIVATE
-        enum_lite::enum_lite
+        enumlite::enumlite
 )
 ```
 
 Then:
 
 ```cpp
-#include <enum_lite/enum_lite.h>
+#include <enumlite/enumlite.h>
 ```
 
 ## CMake — Git submodule
@@ -32,37 +32,37 @@ Then:
 Add the repository to your project:
 
 ```bash
-git submodule add https://github.com/YOUR_USERNAME/enum_lite.git external/enum_lite
+git submodule add https://github.com/YOUR_USERNAME/enumlite.git external/enumlite
 ```
 
 Then in `CMakeLists.txt`:
 
 ```cmake
 add_subdirectory(
-    external/enum_lite
+    external/enumlite
 )
 
 target_link_libraries(your_target
     PRIVATE
-        enum_lite::enum_lite
+        enumlite::enumlite
 )
 ```
 
 ## CMake — Local copy
 
-Copy the `include/enum_lite` directory into your project and add the include directory:
+Copy the `include/enumlite` directory into your project and add the include directory:
 
 ```cmake
 target_include_directories(your_target
     PRIVATE
-        path/to/enum_lite/include
+        path/to/enumlite/include
 )
 ```
 
 Then:
 
 ```cpp
-#include <enum_lite/enum_lite.h>
+#include <enumlite/enumlite.h>
 ```
 
 ## Without CMake
@@ -70,7 +70,7 @@ Then:
 Copy:
 
 ```text
-enum_lite/include/enum_lite/
+enumlite/include/enumlite/
 ```
 
 into your project's include directory.
@@ -80,7 +80,7 @@ For example:
 ```text
 my_project/
 ├── include/
-│   └── enum_lite/
+│   └── enumlite/
 └── src/
     └── main.cpp
 ```

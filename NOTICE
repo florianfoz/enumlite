@@ -4,7 +4,7 @@ Copyright © 2026 Florian Foz - enumlite
 
 Tolza is distributed under the Apache License, Version 2.0.
 
-enum_lite is a header-only C++20 library and does not bundle or require
+enumlite is a header-only C++20 library and does not bundle or require
 any third-party dependencies by default.
 
 The optional Qt backend depends on Qt and is subject to the terms and
