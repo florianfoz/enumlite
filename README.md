@@ -719,6 +719,14 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(enumlite)
+
+...
+
+target_link_libraries(your_target
+    PUBLIC
+        enumlite::enumlite_qt # add _qt on enumlite::enumlite if already installed
+)
+
 ```
 or on cmake git submodule: 
 > think to set the submodule `git submodule add https://github.com/florianfoz/enumlite.git external/enumlite`
@@ -731,7 +739,7 @@ add_subdirectory(
 
 target_link_libraries(your_target
     PRIVATE
-        enumlite::enumlite
+        enumlite::enumlite_qt # add _qt on enumlite::enumlite if already installed
 )
 ```
 or on build command argument (if alreadt fetched or submodule added):
