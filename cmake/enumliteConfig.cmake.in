@@ -1,5 +1,11 @@
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+
+if(@ENUMLITE_BUILD_QT@)
+    find_dependency(Qt6 COMPONENTS Core)
+endif()
+
 include(
     "${CMAKE_CURRENT_LIST_DIR}/enumliteTargets.cmake"
 )

@@ -19,6 +19,7 @@ option(ENUMLITE_BUILD_QT
     OFF
 )
 
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ------------------------------------------------------------------------------
