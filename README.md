@@ -1039,20 +1039,16 @@ DEFINE_FLAGS_EX(
 
 `enumlite` is split into two layers:
 
-```
-enumlite.h
-     |
-     +-------------------+
-     |                   |
-  Enum logic         Flags logic
-     |                   |
-     +---------+---------+
-               |
-            Backend
-               |
-     +---------+---------+
-     |         |         |
-    std        Qt      Custom
+```mermaid
+flowchart LR
+    A[enumlite.h]
+    A-->B[Enum logic]
+    A-->C[Flags logic]
+    B-->D[Backend]
+    C-->D
+    D-->E[std]
+    D-->F[Qt]
+    D-->G[Custom]
 ```
 
 The enum and flag implementation only relies on the backend interface.
