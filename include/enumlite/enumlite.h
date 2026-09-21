@@ -1,10 +1,11 @@
 #pragma once
 
-#include "enumlite_backend_std.h"
-
 #include <array>
 #include <cstddef>
 #include <type_traits>
+#include <utility>
+
+#include "enumlite_backend_std.h"
 
 #ifndef ENUMLITE_DEFAULT_BACKEND
 #define ENUMLITE_DEFAULT_BACKEND ::enumlite::std_backend
@@ -13,168 +14,136 @@
 namespace enumlite {
 
 // ============================================================================
-// Backend-independent helpers
-// ============================================================================
-
-template <typename Backend> struct basic_enumlite {
-  using backend_type = Backend;
-  using string_type = typename Backend::string_type;
-  using string_view_type = typename Backend::string_view_type;
-  using char_type = typename Backend::char_type;
-  using size_type = typename Backend::size_type;
-};
-
-// ============================================================================
-// String normalization
-//
-// Rules:
-//
-//   "Foo"   == "foo"
-//   "foo_"  == "foo"
-//   "_foo"  == "foo"
-//   "foo-bar" == "foo_bar"
-//   spaces/tabs are ignored around the value
+// String helpers
 // ============================================================================
 
 template <typename Backend>
 typename Backend::string_type
-normalize_enum_string(typename Backend::string_type value) {
-  using string_type = typename Backend::string_type;
+normalize(const typename Backend::string_type &input) {
   using size_type = typename Backend::size_type;
-  using char_type = typename Backend::char_type;
+
+  typename Backend::string_type result;
+
+  const size_type size = Backend::size(input);
+
+  size_type first = 0;
+  size_type last = size;
 
   // Trim leading spaces/tabs.
-  while (!Backend::empty(value)) {
-    const char_type c = Backend::front(value);
+  while (first < last) {
+    const auto c = Backend::at(input, first);
 
-    if (c == ' ' || c == '\t')
-      Backend::erase(value, 0, 1);
-    else
+    if (c != ' ' && c != '\t')
       break;
+
+    ++first;
   }
 
   // Trim trailing spaces/tabs.
-  while (!Backend::empty(value)) {
-    const char_type c = Backend::back(value);
+  while (last > first) {
+    const auto c = Backend::at(input, last - 1);
 
-    if (c == ' ' || c == '\t')
-      Backend::erase(value, Backend::size(value) - 1, 1);
-    else
+    if (c != ' ' && c != '\t')
       break;
+
+    --last;
   }
 
-  // Leading '_' is ignored.
-  if (!Backend::empty(value) && Backend::front(value) == '_') {
-    Backend::erase(value, 0, 1);
+  // Ignore leading underscore.
+  if (first < last && Backend::at(input, first) == '_')
+    ++first;
+
+  // Ignore trailing underscore.
+  if (last > first && Backend::at(input, last - 1) == '_')
+    --last;
+
+  for (size_type i = first; i < last; ++i) {
+    auto c = Backend::at(input, i);
+
+    // '-' and '_' are equivalent.
+    if (c == '-')
+      c = '_';
+
+    c = Backend::to_lower(c);
+
+    Backend::append(result, c);
   }
 
-  // Trailing '_' is ignored.
-  if (!Backend::empty(value) && Backend::back(value) == '_') {
-    Backend::erase(value, Backend::size(value) - 1, 1);
+  return result;
+}
+
+template <typename Backend>
+bool string_equal(const typename Backend::string_type &lhs,
+                  const typename Backend::string_type &rhs) {
+  if (Backend::size(lhs) != Backend::size(rhs))
+    return false;
+
+  const auto size = Backend::size(lhs);
+
+  for (typename Backend::size_type i = 0; i < size; ++i) {
+    if (Backend::at(lhs, i) != Backend::at(rhs, i))
+      return false;
   }
 
-  // Normalize '-' to '_'.
-  for (size_type i = 0; i < Backend::size(value); ++i) {
-    if (Backend::at(value, i) == '-') {
-      // We cannot directly replace through the backend interface,
-      // so rebuild the string.
-      string_type result;
-
-      for (size_type j = 0; j < Backend::size(value); ++j) {
-        char_type c = Backend::at(value, j);
-
-        if (c == '-')
-          c = '_';
-
-        Backend::append(result, c);
-      }
-
-      value = result;
-      break;
-    }
-  }
-
-  // ASCII lowercase.
-  for (size_type i = 0; i < Backend::size(value); ++i) {
-    // Rebuild because the backend interface intentionally does not
-    // require mutable character references.
-    string_type result;
-
-    for (size_type j = 0; j < Backend::size(value); ++j) {
-      const char_type c = Backend::to_lower(Backend::at(value, j));
-
-      Backend::append(result, c);
-    }
-
-    value = result;
-    break;
-  }
-
-  return value;
+  return true;
 }
 
 template <typename Backend>
 bool enum_string_equal(const typename Backend::string_type &lhs,
                        const typename Backend::string_type &rhs) {
-  return normalize_enum_string<Backend>(lhs) ==
-         normalize_enum_string<Backend>(rhs);
+  const auto lhs_normalized = normalize<Backend>(lhs);
+  const auto rhs_normalized = normalize<Backend>(rhs);
+
+  return string_equal<Backend>(lhs_normalized, rhs_normalized);
 }
 
 template <typename Backend>
-bool enum_string_equal_literal(const typename Backend::string_type &lhs,
-                               const char *rhs) {
-  return enum_string_equal<Backend>(lhs, Backend::from_literal(rhs));
+bool enum_string_equal_literal(const typename Backend::string_type &value,
+                               const char *literal) {
+  return enum_string_equal<Backend>(value, Backend::from_literal(literal));
 }
 
 // ============================================================================
-// Remove enum suffix from generated names.
-//
-// Example:
-//
-//   Foo_ -> Foo
-//   Foo  -> Foo
+// Static string list
 // ============================================================================
 
-template <typename Backend>
-typename Backend::string_type
-strip_enum_suffix(typename Backend::string_type value) {
-  if (!Backend::empty(value) && Backend::back(value) == '_') {
-    Backend::erase(value, Backend::size(value) - 1, 1);
-  }
-
-  return value;
-}
-
-// ============================================================================
-// static_string_list
-// ============================================================================
-
-template <typename Backend, std::size_t N> class static_string_list {
+template <typename Backend, std::size_t Capacity> class static_string_list {
 public:
-  using backend_type = Backend;
   using string_type = typename Backend::string_type;
   using size_type = typename Backend::size_type;
 
-  constexpr static_string_list() = default;
+  void push_back(string_type value) {
+    if (size_ < Capacity)
+      values_[size_++] = std::move(value);
+  }
 
-  constexpr std::size_t count() const noexcept { return N; }
+  [[nodiscard]]
+  size_type size() const noexcept {
+    return size_;
+  }
 
-  constexpr bool empty() const noexcept { return N == 0; }
+  [[nodiscard]]
+  bool empty() const noexcept {
+    return size_ == 0;
+  }
 
-  const string_type &operator[](std::size_t index) const noexcept {
+  const string_type &operator[](size_type index) const noexcept {
     return values_[index];
   }
 
-  const string_type *begin() const noexcept { return values_.data(); }
+  string_type &operator[](size_type index) noexcept { return values_[index]; }
 
-  const string_type *end() const noexcept { return values_.data() + N; }
+  auto begin() const noexcept { return values_.begin(); }
 
-  std::array<string_type, N> &data() noexcept { return values_; }
+  auto end() const noexcept { return values_.begin() + size_; }
 
-  const std::array<string_type, N> &data() const noexcept { return values_; }
+  auto begin() noexcept { return values_.begin(); }
+
+  auto end() noexcept { return values_.begin() + size_; }
 
 private:
-  std::array<string_type, N> values_{};
+  std::array<string_type, Capacity> values_{};
+  size_type size_ = 0;
 };
 
 } // namespace enumlite
@@ -183,154 +152,204 @@ private:
 // Preprocessor utilities
 // ============================================================================
 
-#define ENUMLITE_DETAIL_EXPAND(x) x
-
-#define ENUMLITE_DETAIL_EMPTY(...)
-
-#define ENUMLITE_DETAIL_DEFER(id) id ENUMLITE_DETAIL_EMPTY()
-
-#define ENUMLITE_DETAIL_OBSTRUCT(...)                                          \
-  __VA_ARGS__                                                                  \
-  ENUMLITE_DETAIL_DEFER(ENUMLITE_DETAIL_EMPTY)()
-
-#define ENUMLITE_DETAIL_PARENTHESIS(...) (__VA_ARGS__)
-
-// ----------------------------------------------------------------------------
-// FOR_EACH_PAIR
-//
-// Input:
-//   A, 1, B, 2, C, 3
-//
-// Expands:
-//   macro(A,1) macro(B,2) macro(C,3)
-// ----------------------------------------------------------------------------
-
-#define ENUMLITE_PP_FOR_EACH_PAIR(macro, ...)                                  \
-  ENUMLITE_PP_FOR_EACH_PAIR_I(macro, __VA_ARGS__)
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_I(macro, name, value, ...)                   \
-  macro(name, value)                                                           \
-      __VA_OPT__(ENUMLITE_PP_FOR_EACH_PAIR_AGAIN()(macro, __VA_ARGS__))
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_AGAIN() ENUMLITE_PP_FOR_EACH_PAIR_I
-
-// ----------------------------------------------------------------------------
-// FOR_EACH_PAIR_CTX
-//
-// Input:
-//   macro, context, A,1,B,2
-//
-// Expands:
-//   macro(context,A,1) macro(context,B,2)
-// ----------------------------------------------------------------------------
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_CTX(macro, ctx, ...)                         \
-  ENUMLITE_PP_FOR_EACH_PAIR_CTX_I(macro, ctx, __VA_ARGS__)
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_I(macro, ctx, name, value, ...)          \
-  macro(ctx, name, value) __VA_OPT__(                                          \
-      ENUMLITE_PP_FOR_EACH_PAIR_CTX_AGAIN()(macro, ctx, __VA_ARGS__))
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_AGAIN() ENUMLITE_PP_FOR_EACH_PAIR_CTX_I
-
-// ----------------------------------------------------------------------------
-// FOR_EACH_PAIR_CTX2
-// ----------------------------------------------------------------------------
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2(macro, ctx1, ctx2, ...)                 \
-  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_I(macro, ctx1, ctx2, __VA_ARGS__)
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_I(macro, ctx1, ctx2, name, value, ...)  \
-  macro(ctx1, ctx2, name, value) __VA_OPT__(                                   \
-      ENUMLITE_PP_FOR_EACH_PAIR_CTX2_AGAIN()(macro, ctx1, ctx2, __VA_ARGS__))
-
-#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_AGAIN() ENUMLITE_PP_FOR_EACH_PAIR_CTX2_I
+#define ENUMLITE_PP_CAT_IMPL(a, b) a##b
+#define ENUMLITE_PP_CAT(a, b) ENUMLITE_PP_CAT_IMPL(a, b)
 
 // ============================================================================
-// Internal generators
+// Count variadic arguments
+//
+// Supported argument counts: 2, 4, 6, ..., 16
 // ============================================================================
 
-#define ENUMLITE_DETAIL_COUNT(name, value) +1
+#define ENUMLITE_PP_NARG_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11,    \
+                              _12, _13, _14, _15, _16, N, ...)                 \
+  N
+
+#define ENUMLITE_PP_NARG(...)                                                  \
+  ENUMLITE_PP_NARG_IMPL(__VA_ARGS__, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6,   \
+                        5, 4, 3, 2, 1, 0)
+
+// ============================================================================
+// Apply macro to pairs
+// ============================================================================
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_2(M, a, b) M(a, b)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_4(M, a, b, ...)                              \
+  M(a, b)                                                                      \
+  ENUMLITE_PP_FOR_EACH_PAIR_2(M, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_6(M, a, b, ...)                              \
+  M(a, b)                                                                      \
+  ENUMLITE_PP_FOR_EACH_PAIR_4(M, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_8(M, a, b, ...)                              \
+  M(a, b)                                                                      \
+  ENUMLITE_PP_FOR_EACH_PAIR_6(M, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_10(M, a, b, ...)                             \
+  M(a, b)                                                                      \
+  ENUMLITE_PP_FOR_EACH_PAIR_8(M, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_12(M, a, b, ...)                             \
+  M(a, b)                                                                      \
+  ENUMLITE_PP_FOR_EACH_PAIR_10(M, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_14(M, a, b, ...)                             \
+  M(a, b)                                                                      \
+  ENUMLITE_PP_FOR_EACH_PAIR_12(M, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_16(M, a, b, ...)                             \
+  M(a, b)                                                                      \
+  ENUMLITE_PP_FOR_EACH_PAIR_14(M, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR(M, ...)                                      \
+  ENUMLITE_PP_CAT(ENUMLITE_PP_FOR_EACH_PAIR_,                                  \
+                  ENUMLITE_PP_NARG(__VA_ARGS__))(M, __VA_ARGS__)
+
+// ============================================================================
+// Apply macro to pairs + one context
+// ============================================================================
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_2(M, C, a, b) M(C, a, b)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_4(M, C, a, b, ...)                       \
+  M(C, a, b)                                                                   \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX_2(M, C, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_6(M, C, a, b, ...)                       \
+  M(C, a, b)                                                                   \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX_4(M, C, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_8(M, C, a, b, ...)                       \
+  M(C, a, b)                                                                   \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX_6(M, C, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_10(M, C, a, b, ...)                      \
+  M(C, a, b)                                                                   \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX_8(M, C, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_12(M, C, a, b, ...)                      \
+  M(C, a, b)                                                                   \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX_10(M, C, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_14(M, C, a, b, ...)                      \
+  M(C, a, b)                                                                   \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX_12(M, C, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX_16(M, C, a, b, ...)                      \
+  M(C, a, b)                                                                   \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX_14(M, C, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX(M, C, ...)                               \
+  ENUMLITE_PP_CAT(ENUMLITE_PP_FOR_EACH_PAIR_CTX_,                              \
+                  ENUMLITE_PP_NARG(__VA_ARGS__))(M, C, __VA_ARGS__)
+
+// ============================================================================
+// Apply macro to pairs + two contexts
+// ============================================================================
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_2(M, C1, C2, a, b) M(C1, C2, a, b)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_4(M, C1, C2, a, b, ...)                 \
+  M(C1, C2, a, b)                                                              \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_2(M, C1, C2, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_6(M, C1, C2, a, b, ...)                 \
+  M(C1, C2, a, b)                                                              \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_4(M, C1, C2, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_8(M, C1, C2, a, b, ...)                 \
+  M(C1, C2, a, b)                                                              \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_6(M, C1, C2, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_10(M, C1, C2, a, b, ...)                \
+  M(C1, C2, a, b)                                                              \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_8(M, C1, C2, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_12(M, C1, C2, a, b, ...)                \
+  M(C1, C2, a, b)                                                              \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_10(M, C1, C2, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_14(M, C1, C2, a, b, ...)                \
+  M(C1, C2, a, b)                                                              \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_12(M, C1, C2, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2_16(M, C1, C2, a, b, ...)                \
+  M(C1, C2, a, b)                                                              \
+  ENUMLITE_PP_FOR_EACH_PAIR_CTX2_14(M, C1, C2, __VA_ARGS__)
+
+#define ENUMLITE_PP_FOR_EACH_PAIR_CTX2(M, C1, C2, ...)                         \
+  ENUMLITE_PP_CAT(ENUMLITE_PP_FOR_EACH_PAIR_CTX2_,                             \
+                  ENUMLITE_PP_NARG(__VA_ARGS__))(M, C1, C2, __VA_ARGS__)
+
+// ============================================================================
+// Enum helpers
+// ============================================================================
+
+#define ENUMLITE_DETAIL_ENUM_DECL(name, value) name = value,
 
 #define ENUMLITE_DETAIL_ENUM_NAME(Backend, name, value)                        \
   Backend::from_literal(#name),
 
 #define ENUMLITE_DETAIL_ENUM_VALUE(Type, name, value) Type::name,
 
-#define ENUMLITE_DETAIL_ENUM_TO_STRING(Backend, Type, name, value)             \
+#define ENUMLITE_DETAIL_ENUM_VALUE_STRING(Backend, name, value)                \
+  Backend::append(result, Backend::from_literal(", "));                        \
+  Backend::append(result, Backend::from_literal(#name));
+
+#define ENUMLITE_DETAIL_ENUM_TO_STRING(Backend, Type, name, value_)            \
   if (value == Type::name)                                                     \
     return Backend::from_literal(#name);
 
-#define ENUMLITE_DETAIL_ENUM_FROM_STRING(Backend, Type, name, value)           \
+#define ENUMLITE_DETAIL_ENUM_FROM_STRING(Backend, Type, name, value_)          \
   if (enumlite::enum_string_equal_literal<Backend>(str, #name))                \
     return Type::name;
-
-#define ENUMLITE_DETAIL_ENUM_APPEND_VALUE(Backend, name, value)                \
-  enumlite::BackendAppendHelper<Backend>::append_name(result, #name, value);
-
-// ============================================================================
-// Internal backend helper
-// ============================================================================
-
-namespace enumlite {
-
-template <typename Backend> struct BackendAppendHelper {
-  static void append_name(typename Backend::string_type &result,
-                          const char *name, auto) {
-    if (!Backend::empty(result))
-      Backend::append(result, Backend::from_literal(", "));
-
-    Backend::append(result, Backend::from_literal(name));
-  }
-};
-
-} // namespace enumlite
 
 // ============================================================================
 // DEFINE_ENUM
 // ============================================================================
 
-#define ENUMLITE_DEFINE_ENUM(Type, Backend, Underlying, ...)                   \
-                                                                               \
+#define DEFINE_ENUM(Type, Underlying, ...)                                     \
+  DEFINE_ENUM_EX(Type, ENUMLITE_DEFAULT_BACKEND, Underlying, __VA_ARGS__)
+
+#define DEFINE_ENUM_EX(Type, Backend, Underlying, ...)                         \
   enum class Type : Underlying {                                               \
     NONE = 0,                                                                  \
     ENUMLITE_PP_FOR_EACH_PAIR(ENUMLITE_DETAIL_ENUM_DECL, __VA_ARGS__)          \
   };                                                                           \
                                                                                \
-  inline const auto Type##_names =                                             \
-      std::array<typename Backend::string_type,                                \
-                 1 ENUMLITE_PP_FOR_EACH_PAIR(ENUMLITE_DETAIL_COUNT,            \
-                                             __VA_ARGS__)>{                    \
-          Backend::from_literal("NONE"),                                       \
-          ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_NAME, Backend,    \
-                                        __VA_ARGS__)};                         \
+  inline const auto Type##_names = [] {                                        \
+    return std::array{Backend::from_literal("NONE"),                           \
+                      ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_NAME, \
+                                                    Backend, __VA_ARGS__)};    \
+  }();                                                                         \
                                                                                \
-  inline const auto Type##_all =                                               \
-      std::array<Type, 1 ENUMLITE_PP_FOR_EACH_PAIR(ENUMLITE_DETAIL_COUNT,      \
-                                                   __VA_ARGS__)>{              \
-          Type::NONE, ENUMLITE_PP_FOR_EACH_PAIR_CTX(                           \
-                          ENUMLITE_DETAIL_ENUM_VALUE, Type, __VA_ARGS__)};     \
+  inline const auto Type##_all = [] {                                          \
+    return std::array{                                                         \
+        Type::NONE, ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_VALUE,  \
+                                                  Type, __VA_ARGS__)};         \
+  }();                                                                         \
                                                                                \
   inline const auto Type##_values = [] {                                       \
-    typename Backend::string_type result = Backend::from_literal("NONE");      \
-                                                                               \
+    auto result = Backend::from_literal("NONE");                               \
     ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_VALUE_STRING, Backend,  \
                                   __VA_ARGS__)                                 \
-                                                                               \
     return result;                                                             \
   }();                                                                         \
                                                                                \
-  inline typename Backend::string_type Type##_to_str(Type value) {             \
-    ENUMLITE_PP_FOR_EACH_PAIR_CTX2(ENUMLITE_DETAIL_ENUM_TO_STRING, Backend,    \
-                                   Type, __VA_ARGS__)                          \
-                                                                               \
+  inline Backend::string_type Type##_to_str(Type value) {                      \
     if (value == Type::NONE)                                                   \
       return Backend::from_literal("NONE");                                    \
+                                                                               \
+    ENUMLITE_PP_FOR_EACH_PAIR_CTX2(ENUMLITE_DETAIL_ENUM_TO_STRING, Backend,    \
+                                   Type, __VA_ARGS__)                          \
                                                                                \
     return {};                                                                 \
   }                                                                            \
                                                                                \
-  inline Type Type##_from_str(const typename Backend::string_type &str) {      \
+  inline Type Type##_from_str(const Backend::string_type &str) {               \
+                                                                               \
     if (enumlite::enum_string_equal_literal<Backend>(str, "NONE"))             \
       return Type::NONE;                                                       \
                                                                                \
@@ -340,90 +359,86 @@ template <typename Backend> struct BackendAppendHelper {
     return Type::NONE;                                                         \
   }                                                                            \
                                                                                \
-  inline bool Type##_is_valid(Type value) {                                    \
+  inline bool Type##_is_valid(Type value) noexcept {                           \
     for (const auto v : Type##_all) {                                          \
       if (v == value)                                                          \
         return true;                                                           \
     }                                                                          \
-                                                                               \
     return false;                                                              \
   }
 
 // ============================================================================
-// Missing internal enum macros
-// ============================================================================
-
-#define ENUMLITE_DETAIL_ENUM_DECL(name, value) name = value,
-
-#define ENUMLITE_DETAIL_ENUM_VALUE_STRING(Backend, name, value)                \
-  do {                                                                         \
-    Backend::append(result, Backend::from_literal(", "));                      \
-    Backend::append(result, Backend::from_literal(#name));                     \
-  } while (false)
-
-// ============================================================================
-// Public enum macros
-// ============================================================================
-
-#define DEFINE_ENUM_EX(Type, Backend, Underlying, ...)                         \
-  ENUMLITE_DEFINE_ENUM(Type, Backend, Underlying, __VA_ARGS__)
-
-#define DEFINE_ENUM(Type, Underlying, ...)                                     \
-  DEFINE_ENUM_EX(Type, ENUMLITE_DEFAULT_BACKEND, Underlying, __VA_ARGS__)
-
-// ============================================================================
-// Flags generators
+// Flag helpers
 // ============================================================================
 
 #define ENUMLITE_DETAIL_FLAG_DECL(name, value) name = value,
 
-#define ENUMLITE_DETAIL_FLAG_VALUE(Type, name, value) Type::name,
+#define ENUMLITE_DETAIL_FLAG_OR_VALUE(Underlying, name, value)                 \
+  | static_cast<Underlying>(value)
 
-#define ENUMLITE_DETAIL_FLAG_NAME(Backend, name, value)                        \
-  Backend::from_literal(#name),
+#define ENUMLITE_DETAIL_FLAG_TO_STRING(Backend, Type, name, value_)            \
+  do {                                                                         \
+    if (Type##_has_flag(value, Type::name)) {                                  \
+      if (!Backend::empty(result))                                             \
+        Backend::append(result, Backend::from_literal("|"));                   \
+      Backend::append(result, Backend::from_literal(#name));                   \
+    }                                                                          \
+  } while (false);
 
-#define ENUMLITE_DETAIL_FLAG_TO_STRING(Backend, Type, name, value)             \
-  if (Type##_has_flag(value, Type::name)) {                                    \
-    if (!Backend::empty(result))                                               \
-      Backend::append(result, Backend::from_literal("|"));                     \
-                                                                               \
-    Backend::append(result, Backend::from_literal(#name));                     \
-  }
+#define ENUMLITE_DETAIL_FLAG_TO_VEC_STR(Backend, Type, name, value_)           \
+  do {                                                                         \
+    if (Type##_has_flag(value, Type::name))                                    \
+      result.push_back(Backend::from_literal(#name));                          \
+  } while (false);
 
-#define ENUMLITE_DETAIL_FLAG_FROM_STRING(Backend, Type, name, value)           \
+#define ENUMLITE_DETAIL_FLAG_FROM_STRING(Backend, Type, name, value_)          \
   if (enumlite::enum_string_equal_literal<Backend>(token, #name))              \
-    result = static_cast<Type>(static_cast<Underlying>(result) |               \
-                               static_cast<Underlying>(Type::name));
+    result |= Type::name;
 
 // ============================================================================
 // DEFINE_FLAGS
 // ============================================================================
 
-#define ENUMLITE_DEFINE_FLAGS(Type, Backend, Underlying, ...)                  \
-                                                                               \
+#define DEFINE_FLAGS(Type, Underlying, ...)                                    \
+  DEFINE_FLAGS_EX(Type, ENUMLITE_DEFAULT_BACKEND, Underlying, __VA_ARGS__)
+
+#define DEFINE_FLAGS_EX(Type, Backend, Underlying, ...)                        \
   enum class Type : Underlying {                                               \
     NONE = 0,                                                                  \
     ENUMLITE_PP_FOR_EACH_PAIR(ENUMLITE_DETAIL_FLAG_DECL, __VA_ARGS__) ALL =    \
-        ENUMLITE_PP_FOR_EACH_PAIR(ENUMLITE_DETAIL_FLAG_OR_VALUE, __VA_ARGS__)  \
+        static_cast<Underlying>(0) ENUMLITE_PP_FOR_EACH_PAIR_CTX(              \
+            ENUMLITE_DETAIL_FLAG_OR_VALUE, Underlying, __VA_ARGS__)            \
   };                                                                           \
                                                                                \
-  inline constexpr Type operator|(Type lhs, Type rhs) noexcept {               \
-    return static_cast<Type>(static_cast<Underlying>(lhs) |                    \
-                             static_cast<Underlying>(rhs));                    \
+  inline bool Type##_has_flag(Type value, Type flag) noexcept {                \
+    using U = std::underlying_type_t<Type>;                                    \
+                                                                               \
+    return (static_cast<U>(value) & static_cast<U>(flag)) ==                   \
+           static_cast<U>(flag);                                               \
   }                                                                            \
                                                                                \
-  inline constexpr Type operator&(Type lhs, Type rhs) noexcept {               \
-    return static_cast<Type>(static_cast<Underlying>(lhs) &                    \
-                             static_cast<Underlying>(rhs));                    \
+  inline Type operator|(Type lhs, Type rhs) noexcept {                         \
+    using U = std::underlying_type_t<Type>;                                    \
+                                                                               \
+    return static_cast<Type>(static_cast<U>(lhs) | static_cast<U>(rhs));       \
   }                                                                            \
                                                                                \
-  inline constexpr Type operator^(Type lhs, Type rhs) noexcept {               \
-    return static_cast<Type>(static_cast<Underlying>(lhs) ^                    \
-                             static_cast<Underlying>(rhs));                    \
+  inline Type operator&(Type lhs, Type rhs) noexcept {                         \
+    using U = std::underlying_type_t<Type>;                                    \
+                                                                               \
+    return static_cast<Type>(static_cast<U>(lhs) & static_cast<U>(rhs));       \
   }                                                                            \
                                                                                \
-  inline constexpr Type operator~(Type value) noexcept {                       \
-    return static_cast<Type>(~static_cast<Underlying>(value));                 \
+  inline Type operator^(Type lhs, Type rhs) noexcept {                         \
+    using U = std::underlying_type_t<Type>;                                    \
+                                                                               \
+    return static_cast<Type>(static_cast<U>(lhs) ^ static_cast<U>(rhs));       \
+  }                                                                            \
+                                                                               \
+  inline Type operator~(Type value) noexcept {                                 \
+    using U = std::underlying_type_t<Type>;                                    \
+                                                                               \
+    return static_cast<Type>(~static_cast<U>(value));                          \
   }                                                                            \
                                                                                \
   inline Type &operator|=(Type &lhs, Type rhs) noexcept {                      \
@@ -441,24 +456,11 @@ template <typename Backend> struct BackendAppendHelper {
     return lhs;                                                                \
   }                                                                            \
                                                                                \
-  inline constexpr bool Type##_has_flag(Type value, Type flag) noexcept {      \
-    return (static_cast<Underlying>(value) & static_cast<Underlying>(flag)) == \
-           static_cast<Underlying>(flag);                                      \
-  }                                                                            \
-                                                                               \
-  inline const auto Type##_names =                                             \
-      std::array<typename Backend::string_type,                                \
-                 1 ENUMLITE_PP_FOR_EACH_PAIR(ENUMLITE_DETAIL_COUNT,            \
-                                             __VA_ARGS__)>{                    \
-          Backend::from_literal("NONE"),                                       \
-          ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_FLAG_NAME, Backend,    \
-                                        __VA_ARGS__)};                         \
-                                                                               \
-  inline typename Backend::string_type Type##_to_str(Type value) {             \
+  inline Backend::string_type Type##_to_str(Type value) {                      \
     if (value == Type::NONE)                                                   \
       return Backend::from_literal("NONE");                                    \
                                                                                \
-    typename Backend::string_type result;                                      \
+    Backend::string_type result;                                               \
                                                                                \
     ENUMLITE_PP_FOR_EACH_PAIR_CTX2(ENUMLITE_DETAIL_FLAG_TO_STRING, Backend,    \
                                    Type, __VA_ARGS__)                          \
@@ -467,76 +469,47 @@ template <typename Backend> struct BackendAppendHelper {
   }                                                                            \
                                                                                \
   inline enumlite::static_string_list<Backend,                                 \
-                                      1 ENUMLITE_PP_FOR_EACH_PAIR(             \
-                                          ENUMLITE_DETAIL_COUNT, __VA_ARGS__)> \
+                                      ENUMLITE_PP_NARG(__VA_ARGS__) / 2>       \
       Type##_to_vec_str(Type value) {                                          \
-    enumlite::static_string_list<Backend,                                      \
-                                 1 ENUMLITE_PP_FOR_EACH_PAIR(                  \
-                                     ENUMLITE_DETAIL_COUNT, __VA_ARGS__)>      \
+    enumlite::static_string_list<Backend, ENUMLITE_PP_NARG(__VA_ARGS__) / 2>   \
         result;                                                                \
                                                                                \
-    std::size_t index = 0;                                                     \
-    result.data()[index++] = Backend::from_literal("NONE");                    \
-                                                                               \
-    ENUMLITE_PP_FOR_EACH_PAIR_CTX2(ENUMLITE_DETAIL_FLAG_VEC_STRING, Backend,   \
+    ENUMLITE_PP_FOR_EACH_PAIR_CTX2(ENUMLITE_DETAIL_FLAG_TO_VEC_STR, Backend,   \
                                    Type, __VA_ARGS__)                          \
                                                                                \
     return result;                                                             \
   }                                                                            \
                                                                                \
-  inline Type Type##_from_str(const typename Backend::string_type &str) {      \
+  inline Type Type##_from_str(const Backend::string_type &str) {               \
+                                                                               \
     if (enumlite::enum_string_equal_literal<Backend>(str, "NONE"))             \
       return Type::NONE;                                                       \
                                                                                \
     Type result = Type::NONE;                                                  \
-    typename Backend::string_type token;                                       \
                                                                                \
-    for (typename Backend::size_type i = 0; i <= Backend::size(str); ++i) {    \
-      const bool end = i == Backend::size(str) || Backend::at(str, i) == '|';  \
+    typename Backend::size_type token_start = 0;                               \
+    const auto length = Backend::size(str);                                    \
                                                                                \
-      if (!end) {                                                              \
-        Backend::append(token, Backend::at(str, i));                           \
+    for (typename Backend::size_type i = 0; i <= length; ++i) {                \
+      if (i != length && Backend::at(str, i) != '|')                           \
         continue;                                                              \
-      }                                                                        \
                                                                                \
-      ENUMLITE_PP_FOR_EACH_PAIR_CTX2(ENUMLITE_DETAIL_FLAG_PARSE_TOKEN,         \
+      auto token = Backend::substr(str, token_start, i - token_start);         \
+                                                                               \
+      ENUMLITE_PP_FOR_EACH_PAIR_CTX2(ENUMLITE_DETAIL_FLAG_FROM_STRING,         \
                                      Backend, Type, __VA_ARGS__)               \
                                                                                \
-      token = {};                                                              \
+      token_start = i + 1;                                                     \
     }                                                                          \
                                                                                \
     return result;                                                             \
   }                                                                            \
                                                                                \
   inline bool Type##_is_valid(Type value) noexcept {                           \
-    return (static_cast<Underlying>(value) &                                   \
-            ~static_cast<Underlying>(Type::ALL)) == 0;                         \
+    using U = std::underlying_type_t<Type>;                                    \
+                                                                               \
+    const U raw = static_cast<U>(value);                                       \
+    const U all = static_cast<U>(Type::ALL);                                   \
+                                                                               \
+    return (raw | all) == all;                                                 \
   }
-
-// ============================================================================
-// Flag internal helpers
-// ============================================================================
-
-#define ENUMLITE_DETAIL_FLAG_OR_VALUE(name, value)                             \
-  | static_cast<Underlying>(value)
-
-#define ENUMLITE_DETAIL_FLAG_VEC_STRING(Backend, Type, name, value)            \
-  if (Type##_has_flag(value, Type::name)) {                                    \
-    result.data()[index++] = Backend::from_literal(#name);                     \
-  }
-
-#define ENUMLITE_DETAIL_FLAG_PARSE_TOKEN(Backend, Type, name, value)           \
-  if (enumlite::enum_string_equal_literal<Backend>(token, #name)) {            \
-    result = static_cast<Type>(static_cast<Underlying>(result) |               \
-                               static_cast<Underlying>(Type::name));           \
-  }
-
-// ============================================================================
-// Public flags macros
-// ============================================================================
-
-#define DEFINE_FLAGS_EX(Type, Backend, Underlying, ...)                        \
-  ENUMLITE_DEFINE_FLAGS(Type, Backend, Underlying, __VA_ARGS__)
-
-#define DEFINE_FLAGS(Type, Underlying, ...)                                    \
-  DEFINE_FLAGS_EX(Type, ENUMLITE_DEFAULT_BACKEND, Underlying, __VA_ARGS__)

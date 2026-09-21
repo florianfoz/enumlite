@@ -7,61 +7,101 @@ project(enumlite
     LANGUAGES CXX
 )
 
-# ---------------------------------------------------------------------------
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+# ------------------------------------------------------------------------------
 # Options
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
-option(ENUMLITE_BUILD_TESTS
-    "Build enumlite tests"
+option(ENUMLITE_BUILD_QT
+    "Build/install the Qt backend"
     OFF
 )
 
-option(ENUMLITE_BUILD_EXAMPLES
-    "Build enumlite examples"
-    OFF
-)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# ---------------------------------------------------------------------------
-# Library
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Core library
+# ------------------------------------------------------------------------------
 
 add_library(enumlite INTERFACE)
 
 add_library(enumlite::enumlite ALIAS enumlite)
-
-target_include_directories(enumlite
-    INTERFACE
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-)
 
 target_compile_features(enumlite
     INTERFACE
         cxx_std_20
 )
 
-# ---------------------------------------------------------------------------
+target_include_directories(enumlite
+    INTERFACE
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+# ------------------------------------------------------------------------------
+# Qt backend
+# ------------------------------------------------------------------------------
+
+if(ENUMLITE_BUILD_QT)
+
+    find_package(Qt6 REQUIRED COMPONENTS Core)
+
+    add_library(enumlite_qt INTERFACE)
+
+    add_library(enumlite::enumlite_qt ALIAS enumlite_qt)
+
+    target_link_libraries(enumlite_qt
+        INTERFACE
+            enumlite::enumlite
+            Qt6::Core
+    )
+
+    target_include_directories(enumlite_qt
+        INTERFACE
+            $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+
+endif()
+
+# ------------------------------------------------------------------------------
 # Installation
-# ---------------------------------------------------------------------------
-
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
+# ------------------------------------------------------------------------------
 
 install(
-    TARGETS enumlite
-    EXPORT enumliteTargets
+    TARGETS
+        enumlite
+    EXPORT
+        enumliteTargets
+)
+
+if(ENUMLITE_BUILD_QT)
+    install(
+        TARGETS
+            enumlite_qt
+        EXPORT
+            enumliteTargets
+    )
+endif()
+
+install(
+    DIRECTORY
+        include/
+    DESTINATION
+        ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(
-    DIRECTORY include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-install(
-    EXPORT enumliteTargets
-    FILE enumliteTargets.cmake
-    NAMESPACE enumlite::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/enumlite
+    EXPORT
+        enumliteTargets
+    FILE
+        enumliteTargets.cmake
+    NAMESPACE
+        enumlite::
+    DESTINATION
+        ${CMAKE_INSTALL_LIBDIR}/cmake/enumlite
 )
 
 configure_package_config_file(
@@ -73,8 +113,10 @@ configure_package_config_file(
 
 write_basic_package_version_file(
     ${PROJECT_BINARY_DIR}/enumliteConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
+    VERSION
+        ${PROJECT_VERSION}
+    COMPATIBILITY
+        SameMajorVersion
 )
 
 install(
@@ -85,19 +127,13 @@ install(
         ${CMAKE_INSTALL_LIBDIR}/cmake/enumlite
 )
 
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
+
+option(ENUMLITE_BUILD_TESTS
+    "Build enumlite tests"
+    OFF
+)
 
 if(ENUMLITE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
-endif()
-
-# ---------------------------------------------------------------------------
-# Examples
-# ---------------------------------------------------------------------------
-
-if(ENUMLITE_BUILD_EXAMPLES)
-    add_subdirectory(examples)
 endif()
