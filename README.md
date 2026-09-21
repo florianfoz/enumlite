@@ -72,9 +72,9 @@ Define a bitmask enum just as easily:
 DEFINE_FLAGS(
     Permissions,
     unsigned,
-    READ,  1u,
-    WRITE, 2u,
-    EXEC,  4u
+    READ,  1U,
+    WRITE, 2U,
+    EXEC,  4U
 );
 ```
 
@@ -397,9 +397,9 @@ Define them with:
 DEFINE_FLAGS(
     Permissions,
     unsigned,
-    READ,  1u,
-    WRITE, 2u,
-    EXEC,  4u
+    READ,  1U,
+    WRITE, 2U,
+    EXEC,  4U
 );
 ```
 
@@ -640,9 +640,9 @@ DEFINE_FLAGS_EX(
     Permissions,
     enumlite::std_backend,
     unsigned,
-    READ,  1u,
-    WRITE, 2u,
-    EXEC,  4u
+    READ,  1U,
+    WRITE, 2U,
+    EXEC,  4U
 );
 ```
 
@@ -838,9 +838,9 @@ DEFINE_ENUM(
 DEFINE_FLAGS(
     Permissions,
     unsigned,
-    READ,  1u,
-    WRITE, 2u,
-    EXEC,  4u
+    READ,  1U,
+    WRITE, 2U,
+    EXEC,  4U
 );
 
 int main()
