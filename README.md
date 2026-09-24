@@ -78,6 +78,8 @@ DEFINE_FLAGS(
 );
 ```
 
+> same generation as enums
+
 The following operators are generated automatically:
 
 ```
@@ -789,6 +791,12 @@ A custom backend needs to provide the string types and operations used by the li
 A minimal backend looks like:
 
 ```
+
+#ifndef ENUMLITE_CONSTEXPR
+#define ENUMLITE_CONSTEXPR // set constexpr if yours types and functions can be constexpr otherwise leave blank
+#endif
+
+// set constexpr on functions if yours types can be constexpr
 struct my_backend
 {
     using string_type      = MyString;
