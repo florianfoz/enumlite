@@ -4,6 +4,10 @@
 #include <QString>
 #include <QStringView>
 
+#ifndef ENUMLITE_CONSTEXPR
+#define ENUMLITE_CONSTEXPR
+#endif
+
 namespace enumlite
 {
 
@@ -82,4 +86,3 @@ struct qt_backend {
 };
 
 } // namespace enumlite
-
