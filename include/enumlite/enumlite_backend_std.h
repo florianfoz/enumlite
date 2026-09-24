@@ -4,7 +4,9 @@
 #include <string>
 #include <string_view>
 
+#ifndef ENUMLITE_CONSTEXPR
 #define ENUMLITE_CONSTEXPR constexpr
+#endif
 
 namespace enumlite
 {
@@ -86,4 +88,3 @@ struct std_backend {
 };
 
 } // namespace enumlite
-
