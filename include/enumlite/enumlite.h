@@ -528,7 +528,3 @@ private:
                                                                                                                        \
     return (raw | all) == all;                                                                                         \
   }
-<<<<<<< HEAD
-
-=======
->>>>>>> 227104a (better macro constexpr + max elements to 255 with static_assert security)
