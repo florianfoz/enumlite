@@ -2,6 +2,8 @@
 
 rm -rf build
 
+clear
+
 cmake -S . -B build -DENUMLITE_BUILD_TESTS=ON
 
 cmake --build build

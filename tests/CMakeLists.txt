@@ -1,5 +1,6 @@
 add_executable(enumlite_tests
     test_enumlite.cpp
+    test_assert.hpp
 )
 
 target_link_libraries(enumlite_tests

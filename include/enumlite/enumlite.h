@@ -331,7 +331,7 @@ private:
   inline auto Type##_names = std::array{                                                                               \
       Backend::from_literal("NONE"), ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_NAME, Backend, __VA_ARGS__)};  \
                                                                                                                        \
-  inline ENUMLITE_CONSTEXPR auto Type##_all =                                                                          \
+  inline ENUMLITE_CONSTEXPR auto Type##_members =                                                                      \
       std::array{Type::NONE, ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_VALUE, Type, __VA_ARGS__)};            \
                                                                                                                        \
   inline auto Type##_values = Backend::from_literal(                                                                   \
@@ -361,7 +361,9 @@ private:
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR bool Type##_is_valid(Type value) noexcept                                                  \
   {                                                                                                                    \
-    for (const auto v : Type##_all) {                                                                                  \
+    if (value == Type::NONE) return false;                                                                             \
+                                                                                                                       \
+    for (const auto v : Type##_members) {                                                                              \
       if (v == value) {                                                                                                \
         return true;                                                                                                   \
       }                                                                                                                \
@@ -416,6 +418,12 @@ private:
     ENUMLITE_PP_FOR_EACH_PAIR(ENUMLITE_DETAIL_FLAG_DECL, __VA_ARGS__) ALL = static_cast<Underlying>(0)                 \
         ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_FLAG_OR_VALUE, Underlying, __VA_ARGS__)                          \
   };                                                                                                                   \
+                                                                                                                       \
+  inline auto Type##_names = std::array{                                                                               \
+      Backend::from_literal("NONE"), ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_NAME, Backend, __VA_ARGS__)};  \
+                                                                                                                       \
+  inline ENUMLITE_CONSTEXPR auto Type##_members =                                                                      \
+      std::array{Type::NONE, ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_VALUE, Type, __VA_ARGS__)};            \
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR bool Type##_has_flag(Type value, Type flag) noexcept                                       \
   {                                                                                                                    \
