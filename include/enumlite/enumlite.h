@@ -380,6 +380,9 @@ private:
 
 #define ENUMLITE_DETAIL_FLAG_OR_VALUE(Underlying, name, value) | static_cast<Underlying>(value)
 
+#define ENUMLITE_DETAIL_FLAG_VALUE_STRING(Backend, name, value) "|" #name
+
+
 #define ENUMLITE_DETAIL_FLAG_TO_STRING(Backend, Type, name, value_)                                                    \
   do {                                                                                                                 \
     if (Type##_has_flag(value, Type::name)) {                                                                          \
@@ -424,6 +427,9 @@ private:
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR auto Type##_members =                                                                      \
       std::array{Type::NONE, ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_ENUM_VALUE, Type, __VA_ARGS__)};            \
+                                                                                                                       \
+  inline auto Type##_values = Backend::from_literal(                                                                   \
+      "NONE" ENUMLITE_PP_FOR_EACH_PAIR_CTX(ENUMLITE_DETAIL_FLAG_VALUE_STRING, Backend, __VA_ARGS__) "|ALL");           \
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR bool Type##_has_flag(Type value, Type flag) noexcept                                       \
   {                                                                                                                    \

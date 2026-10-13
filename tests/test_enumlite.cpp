@@ -127,8 +127,10 @@ static void test_flags_members()
   constexpr auto features_members = static_cast<unsigned char>(Features::ALL);
 
   static_assert(features_members == 0x07);
-  std::cout << Permissions_to_str(Permissions::ALL) << std::endl;
+
   ASSERT_EQ(static_cast<unsigned char>(Features::ALL), 0x07);
+
+  ASSERT_EQ(Features_values, "NONE|A|B|C|ALL");
 }
 
 static void test_flags_operators()
