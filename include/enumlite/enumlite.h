@@ -512,6 +512,9 @@ private:
     if (enumlite::enum_string_equal_literal<Backend>(str, "NONE")) {                                                   \
       return Type::NONE;                                                                                               \
     }                                                                                                                  \
+    if (enumlite::enum_string_equal_literal<Backend>(str, "ALL")) {                                                    \
+      return Type::ALL;                                                                                                \
+    }                                                                                                                  \
                                                                                                                        \
     Type result = Type::NONE;                                                                                          \
                                                                                                                        \

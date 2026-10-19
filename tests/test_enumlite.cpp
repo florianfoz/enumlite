@@ -246,6 +246,7 @@ static void test_flags_from_string()
   ASSERT_EQ(Permissions_from_str("READ|WRITE"), (Permissions::READ | Permissions::WRITE));
 
   ASSERT_EQ(Permissions_from_str("READ|WRITE|EXECUTE"), Permissions::ALL);
+  ASSERT_EQ(Permissions_from_str("ALL"), Permissions::ALL);
 
   // Case insensitive.
   ASSERT_EQ(Permissions_from_str("read|WRITE"), (Permissions::READ | Permissions::WRITE));
