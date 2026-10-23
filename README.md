@@ -57,7 +57,7 @@ as well as helper functions and metadata:
 ```
 Color_names
 Color_values
-Color_all
+Color_members
 
 Color_to_str(...)
 Color_from_str(...)
@@ -307,7 +307,7 @@ the following are available:
 
 ```
 Color_names
-Color_all
+Color_members
 Color_values
 ```
 
@@ -335,12 +335,12 @@ BLUE
 
 
 
-## `Color_all`
+## `Color_members`
 
 Contains the corresponding enum values:
 
 ```
-for (auto value : Color_all)
+for (auto value : Color_members)
 {
     std::cout << Color_to_str(value) << '\n';
 }
@@ -968,7 +968,7 @@ Generates:
 ```
 Type
 Type_names
-Type_all
+Type_members
 Type_values
 
 Type_to_str()
