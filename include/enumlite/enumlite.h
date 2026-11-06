@@ -3,6 +3,7 @@
 #include "enumlite_backend_std.h"
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
@@ -442,28 +443,32 @@ private:
   {                                                                                                                    \
     using U = std::underlying_type_t<Type>;                                                                            \
                                                                                                                        \
-    return static_cast<Type>(static_cast<U>(lhs) | static_cast<U>(rhs));                                               \
+    const U bits = static_cast<U>(static_cast<U>(lhs) | static_cast<U>(rhs));                                          \
+    return std::bit_cast<Type>(bits);                                                                                  \
   }                                                                                                                    \
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR Type operator&(Type lhs, Type rhs) noexcept                                                \
   {                                                                                                                    \
     using U = std::underlying_type_t<Type>;                                                                            \
                                                                                                                        \
-    return static_cast<Type>(static_cast<U>(lhs) & static_cast<U>(rhs));                                               \
+    const U bits = static_cast<U>(static_cast<U>(lhs) & static_cast<U>(rhs));                                          \
+    return std::bit_cast<Type>(bits);                                                                                  \
   }                                                                                                                    \
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR Type operator^(Type lhs, Type rhs) noexcept                                                \
   {                                                                                                                    \
     using U = std::underlying_type_t<Type>;                                                                            \
                                                                                                                        \
-    return static_cast<Type>(static_cast<U>(lhs) ^ static_cast<U>(rhs));                                               \
+    const U bits = static_cast<U>(static_cast<U>(lhs) ^ static_cast<U>(rhs));                                          \
+    return std::bit_cast<Type>(bits);                                                                                  \
   }                                                                                                                    \
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR Type operator~(Type value) noexcept                                                        \
   {                                                                                                                    \
     using U = std::underlying_type_t<Type>;                                                                            \
                                                                                                                        \
-    return static_cast<Type>(~static_cast<U>(value));                                                                  \
+    const U bits = static_cast<U>(~static_cast<U>(value));                                                             \
+    return std::bit_cast<Type>(bits);                                                                                  \
   }                                                                                                                    \
                                                                                                                        \
   inline ENUMLITE_CONSTEXPR Type& operator|=(Type& lhs, Type rhs) noexcept                                             \

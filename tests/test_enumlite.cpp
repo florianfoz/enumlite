@@ -61,7 +61,7 @@ static void test_enum_to_string()
   ASSERT_EQ(Color_to_str(Color::BLUE), "BLUE");
 
   // Unknown enum value.
-  ASSERT_EQ(Color_to_str(static_cast<Color>(42)).empty(), true);
+  ASSERT_EQ(Color_to_str(std::bit_cast<Color>(42)).empty(), true);
 }
 
 static void test_enum_from_string()
@@ -95,8 +95,8 @@ static void test_enum_validation()
   ASSERT_EQ(Color_is_valid(Color::GREEN), true);
   ASSERT_EQ(Color_is_valid(Color::BLUE), true);
 
-  ASSERT_EQ(Color_is_valid(static_cast<Color>(42)), false);
-  ASSERT_EQ(Color_is_valid(static_cast<Color>(255)), false);
+  ASSERT_EQ(Color_is_valid(std::bit_cast<Color>(42)), false);
+  ASSERT_EQ(Color_is_valid(std::bit_cast<Color>(255)), false);
 }
 
 // ============================================================================
@@ -276,9 +276,9 @@ static void test_flags_validation()
   ASSERT_EQ(Permissions_is_valid(Permissions::ALL), true);
 
   // A value containing a bit outside ALL is invalid.
-  ASSERT_EQ(Permissions_is_valid(static_cast<Permissions>(8U)), false);
+  ASSERT_EQ(Permissions_is_valid(std::bit_cast<Permissions>(8U)), false);
 
-  ASSERT_EQ(Permissions_is_valid(static_cast<Permissions>(0x80U)), false);
+  ASSERT_EQ(Permissions_is_valid(std::bit_cast<Permissions>(0x80U)), false);
 }
 
 // ============================================================================
