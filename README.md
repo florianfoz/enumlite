@@ -761,7 +761,6 @@ Then enable the Qt backend in code:
 ```cpp
 #include <enumlite/enumlite_backend_qt.h>
 #define ENUMLITE_DEFAULT_BACKEND ::enumlite::qt_backend
-//
 #include <enumlite/enumlite.h>
 ```
 
