@@ -30,7 +30,7 @@ The core library is completely independent from Qt or any other string framework
 
 Define an enum with a single macro:
 
-```
+```cpp
 DEFINE_ENUM(
     Color,
     int,
@@ -42,7 +42,7 @@ DEFINE_ENUM(
 
 This generates:
 
-```
+```cpp
 enum class Color : int
 {
     NONE = 0,
@@ -54,7 +54,7 @@ enum class Color : int
 
 as well as helper functions and metadata:
 
-```
+```cpp
 Color_names
 Color_values
 Color_members
@@ -68,7 +68,7 @@ Color_is_valid(...)
 
 Define a bitmask enum just as easily:
 
-```
+```cpp
 DEFINE_FLAGS(
     Permissions,
     unsigned,
@@ -82,7 +82,7 @@ DEFINE_FLAGS(
 
 The following operators are generated automatically:
 
-```
+```cpp
 |
 &
 ^
@@ -94,7 +94,7 @@ The following operators are generated automatically:
 
 Example:
 
-```
+```cpp
 auto permissions =
     Permissions::READ |
     Permissions::WRITE;
@@ -129,13 +129,13 @@ see ![INSTALLATION.md](/INSTALLATION.md)
 
 Include the library:
 
-```
+```cpp
 #include <enumlite/enumlite.h>
 ```
 
 Then define an enum:
 
-```
+```cpp
 DEFINE_ENUM(
     Color,
     int,
@@ -147,19 +147,19 @@ DEFINE_ENUM(
 
 ## Enum to string
 
-```
+```cpp
 auto text = Color_to_str(Color::RED);
 ```
 
 With the standard backend, the return type is:
 
-```
+```cpp
 std::string
 ```
 
 For example:
 
-```
+```cpp
 std::cout << Color_to_str(Color::RED);
 ```
 
@@ -173,25 +173,25 @@ RED
 
 ## String to enum
 
-```
+```cpp
 auto color = Color_from_str("GREEN");
 ```
 
 The result is:
 
-```
+```cpp
 Color::GREEN
 ```
 
 Unknown values return:
 
-```
+```cpp
 Color::NONE
 ```
 
 Example:
 
-```
+```cpp
 auto color = Color_from_str("unknown");
 
 if (color == Color::NONE)
@@ -219,7 +219,7 @@ rEd
 
 All match:
 
-```
+```cpp
 Color::RED
 ```
 
@@ -229,7 +229,7 @@ Color::RED
 
 For:
 
-```
+```cpp
 DEFINE_ENUM(
     MyEnum,
     int,
@@ -269,7 +269,7 @@ This is useful for enum identifiers that conflict with C++ keywords or project n
 
 For example:
 
-```
+```cpp
 DEFINE_ENUM(
     Keyword,
     int,
@@ -293,7 +293,7 @@ struct
 
 For:
 
-```
+```cpp
 DEFINE_ENUM(
     Color,
     int,
@@ -317,7 +317,7 @@ Color_values
 
 Contains the names of all enum values, including `NONE`:
 
-```
+```cpp
 for (const auto& name : Color_names)
 {
     std::cout << name << '\n';
@@ -339,7 +339,7 @@ BLUE
 
 Contains the corresponding enum values:
 
-```
+```cpp
 for (auto value : Color_members)
 {
     std::cout << Color_to_str(value) << '\n';
@@ -352,7 +352,7 @@ for (auto value : Color_members)
 
 Contains the comma-separated list of values:
 
-```
+```cpp
 std::cout << Color_values;
 ```
 
@@ -368,7 +368,7 @@ NONE, RED, GREEN, BLUE
 
 Use the generated validation function:
 
-```
+```cpp
 if (Color_is_valid(color))
 {
     // Valid Color value
@@ -377,7 +377,7 @@ if (Color_is_valid(color))
 
 Example:
 
-```
+```cpp
 Color color =
     static_cast<Color>(123);
 
@@ -395,7 +395,7 @@ Flags use the same basic API.
 
 Define them with:
 
-```
+```cpp
 DEFINE_FLAGS(
     Permissions,
     unsigned,
@@ -407,7 +407,7 @@ DEFINE_FLAGS(
 
 This generates:
 
-```
+```cpp
 enum class Permissions : unsigned
 {
     NONE = 0,
@@ -422,7 +422,7 @@ enum class Permissions : unsigned
 
 ## Combining Flags
 
-```
+```cpp
 auto permissions =
     Permissions::READ |
     Permissions::WRITE;
@@ -436,7 +436,7 @@ The result contains both flags.
 
 Use:
 
-```
+```cpp
 Permissions_has_flag(
     permissions,
     Permissions::READ
@@ -445,7 +445,7 @@ Permissions_has_flag(
 
 Example:
 
-```
+```cpp
 if (Permissions_has_flag(
         permissions,
         Permissions::WRITE))
@@ -460,7 +460,7 @@ if (Permissions_has_flag(
 
 The generated operators also support:
 
-```
+```cpp
 permissions &= ~Permissions::WRITE;
 ```
 
@@ -468,7 +468,7 @@ permissions &= ~Permissions::WRITE;
 
 ## XOR
 
-```
+```cpp
 permissions ^= Permissions::EXEC;
 ```
 
@@ -476,14 +476,14 @@ permissions ^= Permissions::EXEC;
 
 ## Flags to String
 
-```
+```cpp
 auto text =
     Permissions_to_str(permissions);
 ```
 
 For:
 
-```
+```cpp
 Permissions::READ |
 Permissions::WRITE
 ```
@@ -500,21 +500,21 @@ READ|WRITE
 
 Flags can be reconstructed from their string representation:
 
-```
+```cpp
 auto permissions =
     Permissions_from_str("READ|WRITE");
 ```
 
 The same normalization rules are applied:
 
-```
+```cpp
 auto permissions =
     Permissions_from_str("read|write");
 ```
 
 and:
 
-```
+```cpp
 auto permissions =
     Permissions_from_str("READ|write");
 ```
@@ -527,14 +527,14 @@ are equivalent.
 
 Use:
 
-```
+```cpp
 auto names =
     Permissions_to_vec_str(permissions);
 ```
 
 Then:
 
-```
+```cpp
 for (const auto& name : names)
 {
     std::cout << name << '\n';
@@ -543,7 +543,7 @@ for (const auto& name : names)
 
 For:
 
-```
+```cpp
 Permissions::READ |
 Permissions::WRITE
 ```
@@ -563,7 +563,7 @@ One of the main design goals of `enumlite` is to keep enum and flag generation i
 
 The default backend uses:
 
-```
+```cpp
 std::string
 ```
 
@@ -577,7 +577,7 @@ A backend defines the types and string operations used by `enumlite`.
 
 By default:
 
-```
+```cpp
 enumlite::std_backend
 ```
 
@@ -585,7 +585,7 @@ is used.
 
 It provides:
 
-```
+```cpp
 using string_type      = std::string;
 using string_view_type = std::string_view;
 using char_type        = char;
@@ -594,7 +594,7 @@ using size_type        = std::size_t;
 
 Therefore:
 
-```
+```cpp
 DEFINE_ENUM(
     Color,
     int,
@@ -612,13 +612,13 @@ uses `std::string`.
 
 A specific backend can be selected with:
 
-```
+```cpp
 DEFINE_ENUM_EX(...)
 ```
 
 For example:
 
-```
+```cpp
 DEFINE_ENUM_EX(
     Color,
     enumlite::std_backend,
@@ -637,7 +637,7 @@ DEFINE_FLAGS_EX(...)
 
 Example:
 
-```
+```cpp
 DEFINE_FLAGS_EX(
     Permissions,
     enumlite::std_backend,
@@ -658,13 +658,13 @@ The default backend can be changed for an entire project.
 
 Define:
 
-```
+```cpp
 #define ENUMLITE_DEFAULT_BACKEND my_backend
 ```
 
 before including `enumlite.h`:
 
-```
+```cpp
 #define ENUMLITE_DEFAULT_BACKEND my_backend
 
 #include <enumlite/enumlite.h>
@@ -672,7 +672,7 @@ before including `enumlite.h`:
 
 Now:
 
-```
+```cpp
 DEFINE_ENUM(
     Color,
     int,
@@ -684,13 +684,13 @@ DEFINE_ENUM(
 
 automatically uses:
 
-```
+```cpp
 my_backend
 ```
 
 An explicit backend can still be selected:
 
-```
+```cpp
 DEFINE_ENUM_EX(
     OtherColor,
     enumlite::std_backend,
@@ -751,13 +751,13 @@ or on build command argument (if alreadt fetched or submodule added):
 
 Include:
 
-```
+```cpp
 #include <enumlite/enumlite_backend_qt.h>
 ```
 
 Then select the Qt backend:
 
-```
+```cpp
 DEFINE_ENUM_EX(
     Color,
     enumlite::qt_backend,
@@ -770,13 +770,13 @@ DEFINE_ENUM_EX(
 
 The generated string functions then use:
 
-```
+```cpp
 QString
 ```
 
 instead of:
 
-```
+```cpp
 std::string
 ```
 
@@ -790,7 +790,7 @@ A custom backend needs to provide the string types and operations used by the li
 
 A minimal backend looks like:
 
-```
+```cpp
 
 #ifndef ENUMLITE_CONSTEXPR
 #define ENUMLITE_CONSTEXPR // set constexpr if yours types and functions can be constexpr otherwise leave blank
@@ -855,7 +855,7 @@ struct my_backend
 
 Then:
 
-```
+```cpp
 DEFINE_ENUM_EX(
     MyEnum,
     my_backend,
@@ -872,7 +872,7 @@ The enum generation code does not need to know anything about `MyString`.
 
 # Complete Example
 
-```
+```cpp
 #include <iostream>
 
 #include <enumlite/enumlite.h>
@@ -954,7 +954,7 @@ READ|EXEC
 
 ## Enum
 
-```
+```cpp
 DEFINE_ENUM(
     Type,
     Underlying,
@@ -965,7 +965,7 @@ DEFINE_ENUM(
 
 Generates:
 
-```
+```cpp
 Type
 Type_names
 Type_members
@@ -980,7 +980,7 @@ Type_is_valid()
 
 ## Enum with Explicit Backend
 
-```
+```cpp
 DEFINE_ENUM_EX(
     Type,
     Backend,
@@ -994,7 +994,7 @@ DEFINE_ENUM_EX(
 
 ## Flags
 
-```
+```cpp
 DEFINE_FLAGS(
     Type,
     Underlying,
@@ -1005,7 +1005,7 @@ DEFINE_FLAGS(
 
 Generates:
 
-```
+```cpp
 Type
 Type_names
 Type_to_str()
@@ -1017,7 +1017,7 @@ Type_has_flag()
 
 and:
 
-```
+```cpp
 operator|
 operator&
 operator^
@@ -1031,7 +1031,7 @@ operator^=
 
 ## Flags with Explicit Backend
 
-```
+```cpp
 DEFINE_FLAGS_EX(
     Type,
     Backend,
