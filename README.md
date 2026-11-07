@@ -755,8 +755,17 @@ Include:
 #include <enumlite/enumlite_backend_qt.h>
 ```
 
-Then select the Qt backend:
+Then enable the Qt backend in code:
 
+**As default backend**
+```cpp
+#include <enumlite/enumlite_backend_qt.h>
+#define ENUMLITE_DEFAULT_BACKEND ::enumlite::qt_backend
+//
+#include <enumlite/enumlite.h>
+```
+
+**Or on specific enum**
 ```cpp
 DEFINE_ENUM_EX(
     Color,
